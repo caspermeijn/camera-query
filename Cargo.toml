@@ -1,0 +1,23 @@
+# Copyright (C) 2020 Casper Meijn <casper@meijn.net>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+[package]
+name = "camera-query"
+version = "0.1.0"
+authors = ["Casper Meijn <casper@meijn.net>"]
+
+edition = "2021"
+description = "Tool for inquering ONVIF cameras"
+repository = "https://github.com/caspermeijn/camera-query"
+license = "GPL-3.0-or-later"
+
+#TODO: keywords and categories
+
+[dependencies]
+onvif = { git = "https://github.com/lumeohq/onvif-rs" }
+#onvif = { path = "../onvif-rs/onvif", default-features = false, features = [] }
+clap = { version = "3", features = ["derive"] }
+url = "2"
+tokio = { version = "1", features = ["full"] }
+thiserror = "1"
