@@ -41,3 +41,91 @@ async fn is_onvif_device(device: &crate::onvif::Device) -> bool {
 
     date.is_ok()
 }
+
+#[cfg(test)]
+mod tests {
+    #[tokio::test]
+    async fn is_onvif_device_success() {
+        use onvif::schema::devicemgmt::GetSystemDateAndTimeResponse;
+        use onvif::soap::soap;
+        use wiremock::{MockServer, Mock, ResponseTemplate};
+        use wiremock::matchers::{method, path};
+
+        // Start mock server
+        let mock_server = MockServer::start().await;
+        let device = crate::onvif::Device::from(mock_server.uri().parse().unwrap()).unwrap();
+
+        // Prepare response
+        let response = GetSystemDateAndTimeResponse::default();
+        let response = soap(&yaserde::ser::to_string(&response).unwrap(), &None).unwrap();
+
+        // Setup mock server
+        Mock::given(method("POST"))
+            .and(path("/onvif/device_service"))
+            .respond_with(ResponseTemplate::new(200)
+                .set_body_string(response))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        // Query mock server
+        let result = super::is_onvif_device(&device).await;
+        assert_eq!(result, true)
+    }
+
+    #[tokio::test]
+    async fn is_onvif_device_empty_response() {
+        use wiremock::{MockServer, Mock, ResponseTemplate};
+        use wiremock::matchers::{method, path};
+
+        // Start mock server
+        let mock_server = MockServer::start().await;
+        let device = crate::onvif::Device::from(mock_server.uri().parse().unwrap()).unwrap();
+
+        // Setup mock server
+        Mock::given(method("POST"))
+            .and(path("/onvif/device_service"))
+            .respond_with(ResponseTemplate::new(200))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        // Query mock server
+        let result = super::is_onvif_device(&device).await;
+        assert_eq!(result, false)
+    }
+
+
+    #[tokio::test]
+    async fn is_onvif_device_timeout() {
+        use wiremock::{MockServer, Mock, ResponseTemplate};
+        use wiremock::matchers::{method, path};
+        use std::time::Duration;
+
+        // Start mock server
+        let mock_server = MockServer::start().await;
+        let device = crate::onvif::Device::from(mock_server.uri().parse().unwrap()).unwrap();
+
+        // Setup mock server
+        Mock::given(method("POST"))
+            .and(path("/onvif/device_service"))
+            .respond_with(ResponseTemplate::new(200)
+                .set_delay(Duration::from_secs(1000)))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        // Query mock server
+        let result = super::is_onvif_device(&device).await;
+        assert_eq!(result, false)
+    }
+
+    #[tokio::test]
+    async fn is_onvif_device_invalid_addr() {
+        let device = crate::onvif::Device::from("http://192.0.2.123".parse().unwrap()).unwrap();
+
+        let result = super::is_onvif_device(&device).await;
+        assert_eq!(result, false)
+    }
+}
+

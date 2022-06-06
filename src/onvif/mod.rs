@@ -19,12 +19,13 @@ use url::Url;
 
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Eq, PartialEq)]
 pub enum ParseError {
     #[error("schema should be `http` or `https`")]
     InvalidSchema,
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct Device {
     pub url: Url,
 }
@@ -43,5 +44,33 @@ impl Device {
     pub fn get_devicemgmt_url(&self) -> Url {
         let service_path = "onvif/device_service";
         self.url.join(service_path).unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::onvif::ParseError;
+
+    #[test]
+    fn parse_device() {
+        let url = "http://192.0.2.123".parse().unwrap();
+        let device = crate::onvif::Device::from(url);
+        assert!(device.is_ok());
+
+        let url = "onvif://192.0.2.123".parse().unwrap();
+        let device = crate::onvif::Device::from(url);
+        assert_eq!(device, Err(ParseError::InvalidSchema));
+
+        let url = "data:text/plain,Stuff".parse().unwrap();
+        let device = crate::onvif::Device::from(url);
+        assert_eq!(device, Err(ParseError::InvalidSchema));
+    }
+
+    #[test]
+    fn get_devicemgmt_url() {
+        let url = "http://192.0.2.123".parse().unwrap();
+        let device = crate::onvif::Device::from(url).unwrap();
+
+        assert_eq!(device.get_devicemgmt_url(), "http://192.0.2.123/onvif/device_service".parse().unwrap());
     }
 }

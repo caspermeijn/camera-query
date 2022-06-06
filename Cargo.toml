@@ -21,3 +21,7 @@ clap = { version = "3", features = ["derive"] }
 url = "2"
 tokio = { version = "1", features = ["full"] }
 thiserror = "1"
+
+[dev-dependencies]
+wiremock = "0.5"
+yaserde = "0.7"
